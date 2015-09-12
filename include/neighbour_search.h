@@ -1,6 +1,8 @@
 #ifndef NEIGHBOUR_SEARCH_H
 #define NEIGHBOUR_SEARCH_H
 
+#include <cmath>
+
 class NeighbourSearch
 {
 public:
@@ -21,7 +23,7 @@ private:
     };
 
     struct Point {
-        double x, y, r;
+        double x, y, rx, ry;
         int from;
     };
 
@@ -37,22 +39,22 @@ private:
         int *from, *rect_centre_x, *rect_left, *rect_right, *rect_bottom,
         *rect_centre_y, *rect_top, *rect_btm_time, *insert_time, *fir, *next,
         *fir_s, *fir_sp, *next_s, *next_sp;
-        double *x, *y, *r, *ydiff;
+        double *x, *y, *rx, *ry, *ydiff;
         bool *real;
         int npoint, npair;
         IntPair *pair;
         Event *tmp_event;
         Event **final_event;
         Node *tree;
+        int *backtracker, *get_queue;
 
-        double sxtime, dvtime, dytime, cetime, setime, istime, bttime, sctime;
+        double sxtime, gdxtime, bstime, dvtime, dytime, cetime, setime, istime, bttime, sctime;
     };
 
     const int kNumThread;
     const int kPairFactor;
     const int kTreeIncrement;
     const double kNegativeInfinity;
-    const double kFloatEpsilon;
 
     void Reset(const int maxn);
     void GetNeighbourPair(const int npnt);
@@ -69,17 +71,18 @@ private:
                     int left[], int point[], int right[], DisMode mod);
     int Find(double diffCoord[], int min, int max, double target);
     void InsertData(ThreadData &data, int from, int x_centre,
-                    int x_left, int x_right, double x, double y, double r,
+                    int x_left, int x_right, double x, double y, double rx, double ry,
                     int x_mod, int x_max, bool real);
     void BucketSort(int num_event, Event tmp_event[], Event **event, int pnum,
                     ThreadData &td);
-    void BuildTree(Node tree[], int left, int right, int &tsum);
-    void Insert(Node tree[], int now, int &target, int fir[], int next[],
-                int ins_which, int ins_time, int btm);
-    void GetPair(Node tree[], int now, ThreadData &td, int ins_which,
+    void BuildTree(Node tree[], int left, int right);
+    void Insert(Node tree[], int root, int fir[], int next[],
+                int ins_which, int ins_time, int btm, int backtracker[]);
+    void GetPair(Node tree[], int root, ThreadData &td, int ins_which,
                  int insert_time[], int ins_lim, int btm, int top, int fir[],
                  int next[]);
     bool enable_timer() const { return enable_timer_; }
+    bool equal(double a, double b);
 
     struct PointLess {
         bool operator()(Point *a, Point *b) const { return a->x < b->x; }
@@ -98,7 +101,7 @@ private:
     ThreadData *data_;
     double dxtime_, prtime_, time_;
 
-    int mem_size_;
+    long int mem_size_;
     int npair_;
     int npnt_;
     bool enable_timer_;

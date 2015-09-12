@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+
+#include <omp.h>
 #include "timsort.hpp"
 
 using namespace std;
@@ -63,6 +65,41 @@ void Search::start(const char *inputFile, const char *outputFile, bool enableTim
 
     inFile.close();
 
+    int tmpcnt[16];
+    memset(tmpcnt, 0, sizeof(int) * 16);
+    omp_set_num_threads(16);
+#pragma omp parallel for
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < n; j++)
+        {
+//            if (fabs(Datx[i] - Datx[j]) <= DatR[i] + DBL_EPSILON
+//                    && fabs(Daty[i] - Daty[j]) <= DatR[i] + DBL_EPSILON
+            if (lessequal(fabs(Datx[i] - Datx[j]), DatR[i])
+                    && lessequal(fabs(Daty[i] - Daty[j]), DatR[i])
+                    && i != j)
+            {
+//                if (!(fabs(Datx[i] - Datx[j]) <= DatR[i] + DBL_EPSILON)
+//                        || !(fabs(Datx[i] - Datx[j]) <= DatR[i] + DBL_EPSILON))
+//                {
+//                    cout << i << " " << j << endl;
+//                    cout << setprecision(22) << Datx[i] << endl;
+//                    cout << setprecision(22) << Datx[j] << endl;
+//                    cout << fabs(Datx[i] - Datx[j]) << endl;
+//                }
+                tmpcnt[omp_get_thread_num()]++;
+            }
+        }
+        //cout << i << " " << flush;
+    }
+
+    int cc = 0;
+    for (int i = 0; i < 16; i++)
+    {
+        cc += tmpcnt[i];
+    }
+    cout << cc << endl;
+
     clk.restart();
 
     GetNeighbourPair(n, corr, Datx, Daty, DatR, Pair);
@@ -102,18 +139,21 @@ void Search::start(const char *inputFile, const char *outputFile, bool enableTim
     cout << "Find " << Psum << " pairs" << endl;
 
 
-    //    fstream cntFile;
-
-    //    cntFile.open("count.txt", fstream::out);
-
-    //    for(int i=0; i<n; i++)
-    //    {
-    //        cntFile << i << "\t" << cnt[i] << endl;
-    //    }
-
-    //    cntFile.close();
-
-    //    delete [] cnt;
+    int *count = new int[n];
+    memset(count, 0, sizeof(int) * n);
+    for (int j = 0; j < Psum; j++)
+    {
+        int a = Pair[j][0];
+        int b = Pair[j][1];
+        count[a]++;
+        count[b]++;
+    }
+    ofstream out("oldcount");
+    for (int i = 0; i < n; i++)
+    {
+        out << i << "\t" << count[i] << endl;
+    }
+    out.close();
 
 }
 
@@ -134,8 +174,8 @@ void Search::initialize(int npnt)
     pointY=new int[npnt]();
     Pair=new NeighbourPair[npnt*PAIR_FACTOR]();
     rectBtmTime=new int[npnt];
-    Fir=new int[npnt];
-    Next=new int[npnt]();
+    Fir=new int[npnt+1];
+    Next=new int[npnt+1]();
     ITime=new int[npnt]();
     corr=new int[npnt]();
     FirSp=new int[npnt]();
@@ -190,7 +230,7 @@ void Search::GetNeighbourPair(int n, int corr[], double Datx[], double Daty[], d
     //        Fir[i]=-1;
     //    }
     memset(rectBtmTime, -1, sizeof(int)*n);
-    memset(Fir, -1, sizeof(int)*n);
+    memset(Fir, -1, sizeof(int)*(n+1));
     //!Caution #pragma omp parallel for
     for (int i=0; i<n*3; i++)
     {
@@ -203,12 +243,14 @@ void Search::GetNeighbourPair(int n, int corr[], double Datx[], double Daty[], d
     iaTime=clk.elapsed();
 
     clk.restart();
-    BuildTree(1, numDiffCoord+TREE_INCREMENT);
+    BuildTree(1, numDiffCoord);
     btTime=clk.elapsed();
 
     clk.restart();
     for(int i=0; i<n*3; i++)
     {
+//        cout << i << endl;
+        //    cout << event[i]->Type << " ";
         if(event[i]->Type==1)
         {
             IWhi=event[i]->Which;
@@ -227,7 +269,20 @@ void Search::GetNeighbourPair(int n, int corr[], double Datx[], double Daty[], d
                 GetPair(1);
         }
     }
+    //  cout << endl;
     scTime=clk.elapsed();
+
+    //  for (int i = 0; i < n; i++)
+    //  {
+    //    cout << Fir[i] << " ";
+    //  }
+    //  cout << endl;
+    //  for (int i = 0; i < n; i++)
+    //  {
+    //    cout << Next[i] << " ";
+    //  }
+    //  cout << endl;
+
 
     //  int nPair=0;
     //  for(int i=1; i<=Psum; i++)
@@ -251,10 +306,11 @@ void Search::discretize(double coord[], double r[], int left[], int point[], int
     diff[0]=-1e10;
 
     //#pragma omp parallel for
-    for(int i=0; i<n; i++)
-    {
-        diff[i+1]=coord[i];
-    }
+    //  for(int i=0; i<n; i++)
+    //  {
+    //    diff[i+1]=coord[i];
+    //  }
+    memcpy(diff+1, coord, sizeof(double) * n);
     if(enableProcessTime)
     {
         cout << "init " << clk.elapsed() << endl;
@@ -273,9 +329,10 @@ void Search::discretize(double coord[], double r[], int left[], int point[], int
 
     for(int i=1; i<=n; i++)
     {
-        if(diff[i]-diff[i-1]>FLT_EPSILON)
+        if(diff[i]>diff[i-1] /*&& !equal(diff[i], diff[i - 1])*/)
             diff[++numDiffCoord]=diff[i];
     }
+    cout << numDiffCoord << endl;
     if(enableProcessTime)
     {
         cout << "diff " << clk.elapsed() << endl;
@@ -285,9 +342,16 @@ void Search::discretize(double coord[], double r[], int left[], int point[], int
     //#pragma omp parallel for
     for(int i=0; i<n; i++)
     {
-        left[i]=Find(0, numDiffCoord, coord[i]-r[i]-FLT_EPSILON*2)+Mod;
+        //        left[i]=Find(0, numDiffCoord, coord[i]-r[i]-FLT_EPSILON*2.0)+Mod;
+        int tmp = Find(0, numDiffCoord, coord[i]-r[i]);
+        left[i] = (equal(diff[tmp], coord[i]-r[i]) ? tmp - 1: tmp) + Mod;
         point[i]=Find(0, numDiffCoord, coord[i]);
-        right[i]=Find(0, numDiffCoord, coord[i]+r[i]);
+        tmp = Find(0, numDiffCoord, coord[i]+r[i]);
+        right[i] = equal(diff[tmp+1], coord[i]+r[i]) ? tmp + 1: tmp;
+//        if (i == 1606)
+//            cout << setprecision(22) << coord[i]+r[i] << " " << diff[tmp] <<
+//                    " " << diff[tmp+1] << endl;
+//        right[i]=Find(0, numDiffCoord, coord[i]+r[i]);
     }
     if(enableProcessTime)
     {
@@ -295,23 +359,33 @@ void Search::discretize(double coord[], double r[], int left[], int point[], int
     }
 }
 
+bool Search::equal(double a, double b)
+{
+    return (fabs(a - b) <= FLT_EPSILON * max(fabs(a), fabs(b)));
+}
+
+bool Search::lessequal(double a, double b)
+{
+    return a < b || equal(a, b);
+}
+
 int Search::Find(int min, int max, double target)
 {
     int lowerBnd=min;
     int upperBnd=max;
 
-    if(fabs(diff[(min+max)/2]-target)<FLT_EPSILON)
-        lowerBnd=(min+max)/2;
-    else
+    //    if(fabs(diff[(min+max)/2]-target)<=FLT_EPSILON)
+    //        lowerBnd=(min+max)/2;
+    //    else
+    //    {
+    while(lowerBnd<upperBnd)
     {
-        while(lowerBnd<upperBnd)
-        {
-            if (diff[(lowerBnd+upperBnd)/2+1]-target>FLT_EPSILON)
-                upperBnd=(lowerBnd+upperBnd)/2;
-            else
-                lowerBnd=(lowerBnd+upperBnd)/2+1;
-        }
+        if (diff[(lowerBnd+upperBnd)/2+1]>target)
+            upperBnd=(lowerBnd+upperBnd)/2;
+        else
+            lowerBnd=(lowerBnd+upperBnd)/2+1;
     }
+    //    }
     return lowerBnd;
 }
 
@@ -427,13 +501,16 @@ void Search::GetPair(int now)
 {
     if(tnt.x==tnt.y)
     {
+//        cout << ILim << endl;
         for(int tmp=Fir[tnt.x]; (tmp!=-1) && (ITime[tmp]>=ILim); tmp=Next[tmp])
         {
+//            assert(tmp != Next[tmp]);
+//            cout << tmp << " " << Next[tmp] << endl;
             //if(IWhi<tmp && (Dist(Datx[IWhi]-Datx[tmp], Daty[IWhi]-Daty[tmp]) < ((DatR[IWhi]+DatR[tmp])/2+FLT_EPSILON)))
             if(IWhi!=tmp)
             {
-                Pair[Psum][0]=IWhi;
-                Pair[Psum][1]=tmp;
+//                Pair[Psum][0]=IWhi;
+//                Pair[Psum][1]=tmp;
                 Psum++;
                 assert(Psum<=n*PAIR_FACTOR);
             }

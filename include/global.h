@@ -4,9 +4,7 @@
 typedef int NeighbourPair[2];
 
 #define PAIR_FACTOR 100
-#define FLT_EPSILON 1e-8
 #define TREE_INCREMENT 3
-#define NEGATIVE_INFINITY -1e20
 
 #define tnt tree[now]
 #define tlson tree[tnt.lson]

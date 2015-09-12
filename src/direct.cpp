@@ -1,8 +1,13 @@
 #include "direct.h"
-#include "timer.hpp"
+
+#include <limits>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+#include <H5Part.h>
+
+#include "timer.hpp"
 
 using namespace std;
 
@@ -15,65 +20,71 @@ void Direct::search(const char *inputFile, const char *outputFile, bool enableTi
 {
   Timer clk;
 
-  ifstream inFile(inputFile);
+  H5PartFile *h5file = H5PartOpenFile(inputFile, H5PART_READ);
 
-  if(!inFile)
+  if (H5PartFileIsValid(h5file)) // In the implementation, SUCCESS returns 0 !
   {
-      cerr << "Error while loading input file" << endl;
-      return;
+    cerr << "File: " << inputFile << " NOT exists!" << endl;
+    return;
   }
 
-  string line;
-  int id;
-  double x, y, r;
-
-  getline(inFile, line);
-  istringstream stream(line);
-  stream >> n;
-
+  H5PartSetStep(h5file, 0);
+  int n = H5PartGetNumParticles(h5file);
   initialize(n);
 
-  for(int i=0; i<n; i++)
-  {
-      getline(inFile, line);
-      istringstream dataStream(line);
-      dataStream >> id >> x >> y >> r;
-      Datx[i]=x;
-      Daty[i]=y;
-      DatR[i]=r;
-  }
+  H5PartReadDataFloat64(h5file, "x", x_vec_);
+  H5PartReadDataFloat64(h5file, "y", y_vec_);
+  H5PartReadDataFloat64(h5file, "rx", rx_vec_);
+  H5PartReadDataFloat64(h5file, "ry", ry_vec_);
 
-  inFile.close();
+  H5PartCloseFile(h5file);
 
+  clk.restart();
+  int npair = 0;
   for (int i = 0; i < n; i++)
   {
-    double xa = Datx[i];
-    double ya = Daty[i];
-    double ra = DatR[i];
+    double xa = x_vec_[i];
+    double ya = y_vec_[i];
+    double rx_a = rx_vec_[i];
+    double ry_a = ry_vec_[i];
+
     for (int j = 0; j < n; j++)
     {
       if (i != j)
       {
-      double distx = fabs(xa - Datx[j]);
-      double disty = fabs(ya - Daty[j]);
-      if (distx )
+        double distx = fabs(xa - x_vec_[j]);
+        double disty = fabs(ya - y_vec_[j]);
+        if (distx <= rx_a + numeric_limits<float>::epsilon() * max(fabs(distx), fabs(rx_a))
+            && disty <= ry_a + numeric_limits<float>::epsilon() * max(fabs(disty), fabs(ry_a)))
+        {
+          npair++;
+        }
       }
     }
   }
+
+  double time = clk.elapsed();
+  cout << "Time: " << time << endl;
+  cout << "Pair: " << npair << endl;
 }
 
 void Direct::initialize(int npnt)
 {
-    Datx=new double[npnt]();
-    Daty=new double[npnt]();
-    DatR=new double[npnt]();
+  x_vec_ = new double[npnt]();
+  y_vec_ = new double[npnt]();
+  rx_vec_ = new double[npnt]();
+  ry_vec_ = new double[npnt]();
 
-    double size = sizeof(double) * (3 * npnt);
-    cout << "**********Memory**********" << endl;
-    cout << size/(1024*1024) << " MB" << endl;
-    cout << endl;
+  double size = sizeof(double) * (3 * npnt);
+  cout << "**********Memory**********" << endl;
+  cout << size/(1024*1024) << " MB" << endl;
+  cout << endl;
 }
 
 Direct::~Direct()
 {
+  delete [] x_vec_;
+  delete [] y_vec_;
+  delete [] rx_vec_;
+  delete [] ry_vec_;
 }

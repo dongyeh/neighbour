@@ -31,6 +31,8 @@ private:
   void GetNeighbourPair(int n, int corr[], double Datx[], double Daty[], double DatR[], int Pair[][2]);
   void discretize(double coord[], double r[], int left[], int point[], int right[], DiscreteMode Mod);
   int Find(int min,int max,double target);
+  bool equal(double a, double b);
+  bool lessequal(double a, double b);
   void bucketSort();
   void BuildTree(int x, int y);
   void Insert(int now, int &target);
@@ -41,7 +43,7 @@ private:
   Event *tmpEvent;
   Event **event;
   double *diff;
-  double *Datx, *Daty, *DatR, ;
+  double *Datx, *Daty, *DatR;
   int *corr, *rectLeft, *rectBottom, *rectRight, *rectTop, *pointX, *pointY, *rectBtmTime, *Fir, *Next, *ITime, *FirSp, *NextSp, *NextS;
   int FirS[4], n, sum, numDiffCoord, Tsum, Psum;
   NeighbourPair *Pair;
@@ -49,7 +51,6 @@ private:
   int _maxn, _maxpair;
   double dxTime, dyTime, ceTime, seTime, iaTime, btTime, scTime, nxTime, ttTime;
   bool enableProcessTime;
-
 };
 
 #endif // SEARCH_H
