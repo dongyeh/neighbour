@@ -8,7 +8,7 @@
 #include <omp.h>
 #include <timsort.hpp>
 
-#include <H5Part.h>
+#include <H5hut.h>
 
 #include "neighbour_search.h"
 #include "timer.hpp"
@@ -131,15 +131,15 @@ void NeighbourSearch::Search(const char *infile, const char *outfile,
   omp_set_num_threads(kNumThread);
   enable_timer_ = enable_timer;
 
-  H5PartFile *h5file = H5PartOpenFile(infile, H5PART_READ);
+  h5_file_t *h5file = H5OpenFile(infile, H5_O_RDONLY, 0 /* MPI_Comm */);
 
-  if (H5PartFileIsValid(h5file)) // In the implementation, SUCCESS returns 0 !
+  if (H5CheckFile(h5file) != H5_SUCCESS) // In the implementation, SUCCESS returns 0 !
   {
     cerr << "File: " << infile << " NOT exists!" << endl;
     return;
   }
 
-  H5PartSetStep(h5file, 0);
+  H5SetStep(h5file, 0);
   npnt_ = H5PartGetNumParticles(h5file);
 
   long *id = new long[npnt_]();
@@ -191,7 +191,7 @@ void NeighbourSearch::Search(const char *infile, const char *outfile,
     }
   }
 
-  H5PartCloseFile(h5file);
+  H5CloseFile(h5file);
   delete [] id;
   delete [] x;
   delete [] y;

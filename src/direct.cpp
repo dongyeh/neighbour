@@ -5,7 +5,7 @@
 #include <fstream>
 #include <sstream>
 
-#include <H5Part.h>
+#include <H5hut.h>
 
 #include "timer.hpp"
 
@@ -20,15 +20,15 @@ void Direct::search(const char *inputFile, const char *outputFile, bool enableTi
 {
   Timer clk;
 
-  H5PartFile *h5file = H5PartOpenFile(inputFile, H5PART_READ);
+  h5_file_t *h5file = H5OpenFile(inputFile, H5_O_RDONLY, 0 /* MPI_Comm */);
 
-  if (H5PartFileIsValid(h5file)) // In the implementation, SUCCESS returns 0 !
+  if (H5CheckFile(h5file) != H5_SUCCESS) // In the implementation, SUCCESS returns 0 !
   {
     cerr << "File: " << inputFile << " NOT exists!" << endl;
     return;
   }
 
-  H5PartSetStep(h5file, 0);
+  H5SetStep(h5file, 0);
   int n = H5PartGetNumParticles(h5file);
   initialize(n);
 
@@ -37,7 +37,7 @@ void Direct::search(const char *inputFile, const char *outputFile, bool enableTi
   H5PartReadDataFloat64(h5file, "rx", rx_vec_);
   H5PartReadDataFloat64(h5file, "ry", ry_vec_);
 
-  H5PartCloseFile(h5file);
+  H5CloseFile(h5file);
 
   clk.restart();
   int npair = 0;

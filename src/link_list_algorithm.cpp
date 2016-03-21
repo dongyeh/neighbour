@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <limits>
 
-#include <H5Part.h>
+#include <H5hut.h>
 
 #include "timer.hpp"
 
@@ -36,15 +36,15 @@ void LinkListAlgorithm::Search(const char *infile)
 void LinkListAlgorithm::LoadParticleFile(const char *infile)
 {
 
-  H5PartFile *h5file = H5PartOpenFile(infile, H5PART_READ);
+  h5_file_t *h5file = H5OpenFile(infile, H5_O_RDONLY, 0 /* MPI_Comm */);
 
-  if (H5PartFileIsValid(h5file)) // In the implementation, SUCCESS returns 0 !
+  if (H5CheckFile(h5file) != H5_SUCCESS) // In the implementation, SUCCESS returns 0 !
   {
     cerr << "File: " << infile << " NOT exists!" << endl;
     return;
   }
 
-  H5PartSetStep(h5file, 0);
+  H5SetStep(h5file, 0);
   num_of_particle_ = H5PartGetNumParticles(h5file);
 
   x_vec_ = new double[num_of_particle_]();
@@ -57,7 +57,7 @@ void LinkListAlgorithm::LoadParticleFile(const char *infile)
   H5PartReadDataFloat64(h5file,"rx", rx_vec_);
   H5PartReadDataFloat64(h5file,"ry", ry_vec_);
 
-  H5PartCloseFile(h5file);
+  H5CloseFile(h5file);
 }
 
 void LinkListAlgorithm::GenerateCell()

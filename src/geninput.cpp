@@ -9,7 +9,7 @@
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_real_distribution.hpp>
-#include <H5Part.h>
+#include <H5hut.h>
 
 using namespace std;
 
@@ -66,15 +66,15 @@ bool GenInput::GenerateRandRand(const char *filename, int numParticle,
   boost::random::uniform_real_distribution<> w_dist(0, W);
   boost::random::uniform_real_distribution<> r_dist(0, 2);
 
-  H5PartFile *outFile = H5PartOpenFile(filename, H5PART_WRITE);
+  h5_file_p outFile = H5OpenFile(filename, H5_O_WRONLY, 0 /* MPI_Comm */);
 
-  if (H5PartFileIsValid(outFile)) // In this implementation, SUCCESS returns 0 !
+  if (H5CheckFile(outFile) == H5_SUCCESS) // In this implementation, SUCCESS returns 0 !
   {
     cerr << "File: " << filename << " NOT exists!" << endl;
     return false;
   }
 
-  H5PartSetStep(outFile, 0);
+  H5SetStep(outFile, 0);
   H5PartSetNumParticles(outFile, numParticle);
 
   double scale = 0.01;
@@ -90,7 +90,7 @@ bool GenInput::GenerateRandRand(const char *filename, int numParticle,
   }
 
   WriteFile(outFile);
-  H5PartCloseFile(outFile);
+  H5CloseFile(outFile);
 
   return true;
 }
@@ -102,15 +102,15 @@ bool GenInput::GenerateRandUnif(const char *filename,
   boost::random::uniform_real_distribution<> l_dist(0, L);
   boost::random::uniform_real_distribution<> w_dist(0, W);
 
-  H5PartFile *outFile = H5PartOpenFile(filename, H5PART_WRITE);
+  h5_file_p outFile = H5OpenFile(filename, H5_O_WRONLY, 0 /* MPI_Comm */);
 
-  if (H5PartFileIsValid(outFile)) // In the implementation, SUCCESS returns 0 !
+  if (H5CheckFile(outFile) != H5_SUCCESS) // In the implementation, SUCCESS returns 0 !
   {
     cerr << "File: " << filename << " NOT exists!" << endl;
     return false;
   }
 
-  H5PartSetStep(outFile, 0);
+  H5SetStep(outFile, 0);
   H5PartSetNumParticles(outFile, numParticle);
 
   double scale = 0.01;
@@ -126,7 +126,7 @@ bool GenInput::GenerateRandUnif(const char *filename,
   }
 
   WriteFile(outFile);
-  H5PartCloseFile(outFile);
+  H5CloseFile(outFile);
   return true;
 }
 
@@ -136,15 +136,15 @@ bool GenInput::GenerateUnifRand(const char *filename,
   boost::random::mt19937 gen;
   boost::random::uniform_real_distribution<> r_dist(0, 2);
 
-  H5PartFile *outFile = H5PartOpenFile(filename, H5PART_WRITE);
+  h5_file_p outFile = H5OpenFile(filename, H5_O_WRONLY, 0 /* MPI_Comm */);
 
-  if (H5PartFileIsValid(outFile)) // In the implementation, SUCCESS returns 0 !
+  if (H5CheckFile(outFile) != H5_SUCCESS) // In the implementation, SUCCESS returns 0 !
   {
     cerr << "File: " << filename << " NOT exists!" << endl;
     return false;
   }
 
-  H5PartSetStep(outFile, 0);
+  H5SetStep(outFile, 0);
   H5PartSetNumParticles(outFile, numParticle);
 
   double scale = 0.01;
@@ -163,22 +163,22 @@ bool GenInput::GenerateUnifRand(const char *filename,
     }
   }
   WriteFile(outFile);
-  H5PartCloseFile(outFile);
+  H5CloseFile(outFile);
   return true;
 }
 
 bool GenInput::GenerateUnifUnif(const char *filename,
                                 int numParticle, int L, int W)
 {
-  H5PartFile *outFile = H5PartOpenFile(filename, H5PART_WRITE);
+  h5_file_p outFile = H5OpenFile(filename, H5_O_WRONLY, 0 /* MPI_Comm */);
 
-  if (H5PartFileIsValid(outFile)) // In the implementation, SUCCESS returns 0 !
+  if (H5CheckFile(outFile) != H5_SUCCESS) // In the implementation, SUCCESS returns 0 !
   {
     cerr << "File: " << filename << " NOT exists!" << endl;
     return false;
   }
 
-  H5PartSetStep(outFile, 0);
+  H5SetStep(outFile, 0);
   H5PartSetNumParticles(outFile, numParticle);
 
   double scale = 0.01;
@@ -197,11 +197,11 @@ bool GenInput::GenerateUnifUnif(const char *filename,
     }
   }
   WriteFile(outFile);
-  H5PartCloseFile(outFile);
+  H5CloseFile(outFile);
   return true;
 }
 
-void GenInput::WriteFile(H5PartFile *file)
+void GenInput::WriteFile(h5_file_t *file)
 {
   H5PartWriteDataInt64(file, "id", id_);
   H5PartWriteDataFloat64(file, "x", x_);

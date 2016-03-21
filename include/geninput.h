@@ -3,7 +3,7 @@
 
 #include <string>
 
-class H5PartFile;
+#include <H5hut.h>
 
 class GenInput
 {
@@ -22,7 +22,7 @@ private:
                         int numParticle, int L, int W);
   bool GenerateUnifUnif(const char *filename,
                         int numParticle, int L, int W);
-  void WriteFile(H5PartFile *file);
+  void WriteFile(h5_file_t *file);
 
   long *id_;
   double *x_;

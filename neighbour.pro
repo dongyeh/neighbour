@@ -3,12 +3,14 @@ QMAKE_CXXFLAGS += -fopenmp
 CONFIG += console
 CONFIG -= qt
 
-LIBS += -lgomp -lpthread -lhdf5 \
-        -L/opt/H5Part/1.6.6/lib -lH5Part \
+LIBS += -lgomp -lpthread \
+        -L/opt/hdf5/1.8.16/lib -lhdf5 \
+        -L/opt/H5hut/lib -lH5hut \
 
 INCLUDEPATH += ./include \
-               /usr/local/include \
-               /opt/H5Part/1.6.6/include \
+               /usr/include \
+               /opt/hdf5/1.8.16/include \
+               /opt/H5hut/include \
 
 SOURCES += main.cpp \
     src/search.cpp \
